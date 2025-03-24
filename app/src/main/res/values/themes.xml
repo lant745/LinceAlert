@@ -1,0 +1,7 @@
+<resources>
+
+    <style name="Theme.AlertLince" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Personaliza aquí tu tema si es necesario -->
+    </style>
+
+</resources>
