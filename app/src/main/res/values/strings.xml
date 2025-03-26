@@ -15,4 +15,5 @@
     <string name="password">Contraseña</string>
     <string name="welcome_back">Bienvenido nuevamente</string>
     <string name="saludo_back">Por favor ingresa tus datos.</string>
+    <string name="webClientId">AIzaSyDbCq8_LXvn4KZ6NYhA3dmsigYnrsJju8c</string>
 </resources>

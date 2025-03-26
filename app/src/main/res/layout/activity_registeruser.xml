@@ -90,7 +90,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/round_google"
-        android:drawableEnd="@drawable/google"
+        android:drawableStart="@drawable/google"
         android:drawablePadding="12dp"
         android:gravity="center_vertical|center_horizontal"
         android:padding="16dp"
