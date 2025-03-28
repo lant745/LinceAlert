@@ -1,5 +1,7 @@
 package com.example.alertlince
 
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -15,17 +17,26 @@ class MainActivity : AppCompatActivity() {
         val dbHelper = DatabaseHelper(this)
         dbHelper.writableDatabase // Esto crea la BD si no existe
 
-        // Si es la primera vez que se crea la actividad, carga el fragmento de LoginUser
-        if (savedInstanceState == null) {
-            loadFragment(LoginUser())  // Cargar el fragmento de LoginUser inicialmente
+        // 🔑 Verificar si hay sesión iniciada
+        val sharedPreferences: SharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE)
+        val isLoggedIn = sharedPreferences.getBoolean("isLoggedIn", false)
+
+        if (isLoggedIn) {
+            // Si el usuario ya está autenticado, redirigirlo a la actividad principal (Vistas)
+            startActivity(Intent(this, Vistas::class.java))
+            finish() // Evita que el usuario vuelva al login con el botón "atrás"
+        } else {
+            // Si no hay sesión, mostrar el fragmento de LoginUser
+            if (savedInstanceState == null) {
+                loadFragment(LoginUser())
+            }
         }
     }
 
-    // Función para cargar un fragmento en el contenedor
     private fun loadFragment(fragment: Fragment) {
         val transaction = supportFragmentManager.beginTransaction()
         transaction.replace(R.id.fragment_container, fragment)
-        transaction.addToBackStack(null) // Esto permite ir atrás entre fragmentos
+        transaction.addToBackStack(null)
         transaction.commit()
     }
 }

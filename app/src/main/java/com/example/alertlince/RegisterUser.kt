@@ -87,9 +87,9 @@ class RegisterUser : Fragment() {
         if (resultado != -1L) {  // Si la inserción fue exitosa
             Toast.makeText(context, "Usuario registrado exitosamente", Toast.LENGTH_SHORT).show()
 
-            // Reemplazar la actividad actual por la nueva actividad (MainActivity)
+            // Reemplazar la actividad actual por la nueva actividad (com.example.alertlince.MainActivity)
             activity?.let {
-                val intent = Intent(it, MainActivity::class.java)
+                val intent = Intent(it, Vistas::class.java)
                 it.startActivity(intent)
                 requireActivity().finish()  // Finalizar la actividad actual si es necesario
             }
