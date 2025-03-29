@@ -16,6 +16,7 @@ import android.widget.TableRow
 import android.widget.TextView
 import android.view.Gravity
 import com.example.alertlince.Contacto
+import com.example.alertlince.controller.UsuarioDao
 
 
 
@@ -43,6 +44,10 @@ class ThirdFragment : Fragment() {
     }
 
     private fun mostrarDialogoAgregarContacto() {
+        val context = requireContext()
+        val num = UsuarioDao(context)
+        val contactos = num.obtenerContactos()
+
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_agregar_contacto, null)
         val nombreInput = dialogView.findViewById<EditText>(R.id.etNombre)
         val apellidoInput = dialogView.findViewById<EditText>(R.id.etApellido)
@@ -61,9 +66,8 @@ class ThirdFragment : Fragment() {
                 val correo = correoInput.text.toString()
 
                 if (nombre.isNotEmpty() && telefono.isNotEmpty()) {
-                    val nuevoContacto = Contacto(idCounter++, nombre, apellido, relacion, telefono, correo)
-                    listaContactos.add(nuevoContacto)
-                    actualizarTabla()
+                    num.insertarContactos(nombre, apellido, relacion, telefono, correo)
+                    actualizarTabla(contactos)
                     Toast.makeText(context, "Contacto agregado correctamente", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Por favor, completa al menos el nombre y teléfono", Toast.LENGTH_SHORT).show()
@@ -75,11 +79,13 @@ class ThirdFragment : Fragment() {
         dialog.show()
     }
 
-    private fun actualizarTabla() {
+    // Método para actualizar la tabla con la lista de contactos
+    private fun actualizarTabla(contactos: List<Map<String, String>>) {
         val tableLayout = binding.root.findViewById<TableLayout>(R.id.tableContactos)
 
         tableLayout.removeAllViews()
 
+        // Crear la fila de encabezado
         val headerRow = TableRow(context).apply {
             addView(createTextView("ID"))
             addView(createTextView("Nombre"))
@@ -90,20 +96,38 @@ class ThirdFragment : Fragment() {
         }
         tableLayout.addView(headerRow)
 
-        listaContactos.forEachIndexed { index, contacto ->
+        // Recorrer la lista de contactos y agregar una fila para cada uno
+        contactos.forEach { contacto ->
             val row = TableRow(context).apply {
-                addView(createTextView(contacto.id.toString()))
-                addView(createTextView(contacto.nombre))
-                addView(createTextView(contacto.apellido))
-                addView(createTextView(contacto.relacion))
-                addView(createTextView(contacto.telefono))
-                addView(createTextView(contacto.correo))
+                addView(createTextView(contacto["idContacto"] ?: ""))
+                addView(createTextView(contacto["nombre"] ?: ""))
+                addView(createTextView(contacto["apellido"] ?: ""))
+                addView(createTextView(contacto["relacion"] ?: ""))
+                addView(createTextView(contacto["telefono"] ?: ""))
+                addView(createTextView(contacto["correo"] ?: ""))
 
-                setOnClickListener { mostrarOpcionesContacto(index) }
+                setOnClickListener {
+                    // Suponiendo que mostrarOpcionesContacto toma un índice o un identificador de contacto
+                    mostrarOpcionesContacto(contacto["idContacto"]?.toInt() ?: -1)
+                }
             }
             tableLayout.addView(row)
         }
     }
+
+
+    // Llamada al método desde otro lugar, por ejemplo, dentro de un método donde obtienes los contactos
+    fun cargarContactos() {
+        val context = requireContext()
+        val num = UsuarioDao(context)
+
+        // Obtener la lista de contactos desde la base de datos (asegurándote de que sea una lista del tipo adecuado)
+        val contactos = num.obtenerContactos()  // Este método debe devolver la lista de contactos
+        actualizarTabla(contactos) // Pasar la lista de contactos al método para actualizar la tabla
+    }
+
+
+
 
     private fun mostrarOpcionesContacto(index: Int) {
         val opciones = arrayOf("Editar", "Eliminar")
@@ -119,7 +143,12 @@ class ThirdFragment : Fragment() {
     }
 
     private fun editarContacto(index: Int) {
-        val contacto = listaContactos[index]
+        val context = requireContext()
+        val num = UsuarioDao(context)
+
+        // Obtener la lista de contactos desde la base de datos (esto devuelve una MapList)
+        val contactos = num.obtenerContactos()
+        val contacto = contactos[index].toMutableMap()  // Usamos la lista actualizada aquí
 
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_editar_contacto, null)
         val etNombre = dialogView.findViewById<EditText>(R.id.etNombreEditar)
@@ -128,33 +157,71 @@ class ThirdFragment : Fragment() {
         val etTelefono = dialogView.findViewById<EditText>(R.id.etTelefonoEditar)
         val etCorreo = dialogView.findViewById<EditText>(R.id.etCorreoEditar)
 
-        etNombre.setText(contacto.nombre)
-        etApellido.setText(contacto.apellido)
-        etRelacion.setText(contacto.relacion)
-        etTelefono.setText(contacto.telefono)
-        etCorreo.setText(contacto.correo)
+        // Rellenar los campos con los datos actuales del contacto
+        etNombre.setText(contacto["nombre"])
+        etApellido.setText(contacto["apellido"])
+        etRelacion.setText(contacto["relacion"])
+        etTelefono.setText(contacto["telefono"])
+        etCorreo.setText(contacto["correo"])
 
         AlertDialog.Builder(requireContext())
             .setTitle("Editar Contacto")
             .setView(dialogView)
             .setPositiveButton("Guardar") { _, _ ->
-                contacto.nombre = etNombre.text.toString().trim()
-                contacto.apellido = etApellido.text.toString().trim()
-                contacto.relacion = etRelacion.text.toString().trim()
-                contacto.telefono = etTelefono.text.toString().trim()
-                contacto.correo = etCorreo.text.toString().trim()
+                // Obtener el ID del contacto (suponiendo que ya está en el mapa)
+                val id = contacto["idContacto"]?.toString() ?: return@setPositiveButton
 
-                actualizarTabla()
+                // Obtener los datos de los EditText
+                val nom = etNombre.text.toString().trim()
+                val ape = etApellido.text.toString().trim()
+                val rela = etRelacion.text.toString().trim()
+                val telefono = etTelefono.text.toString().trim()
+                val correo = etCorreo.text.toString().trim()
+
+                // Guardar los cambios en la base de datos
+                num.editarContacto(id, nom, ape, rela, telefono, correo)
+
+                // Volver a cargar la lista de contactos actualizada
+                val updatedContactos = num.obtenerContactos()
+
+                // Actualizar la tabla para reflejar los cambios
+                actualizarTabla(updatedContactos)
+
+                Toast.makeText(context, "Contacto actualizado", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
+
+
+
+
     private fun eliminarContacto(index: Int) {
-        listaContactos.removeAt(index)
-        actualizarTabla()
+        val context = requireContext()
+        val num = UsuarioDao(context)
+
+        // Obtener la lista de contactos desde la base de datos (esto devuelve una MapList)
+        val contactos = num.obtenerContactos()
+
+        // Obtener el contacto a eliminar (usando el índice)
+        val contactoAEliminar = contactos[index]
+
+        // Obtener el id del contacto a eliminar
+        val idContacto = contactoAEliminar["idContacto"]?.toInt() ?: return
+
+        // Eliminar el contacto de la base de datos
+        num.eliminarContacto(idContacto.toString())
+
+        // Actualizar la lista de contactos después de eliminar
+        val updatedContactos = num.obtenerContactos()
+
+        // Actualizar la tabla para reflejar los cambios
+        actualizarTabla(updatedContactos)
+
         Toast.makeText(context, "Contacto eliminado", Toast.LENGTH_SHORT).show()
     }
+
 
     private fun createTextView(text: String): TextView {
         return TextView(context).apply {
